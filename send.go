@@ -59,6 +59,7 @@ func send(sk string, pubkey string, filePath string) (string, error) {
 			CreatedAt: nostr.Now(),
 		}
 
+		// lets tag the next event ID
 		if i < len(base64Parts)-1 {
 			nextEventID := events[i+1].ID
 			event.Tags = nostr.Tags{
@@ -66,9 +67,16 @@ func send(sk string, pubkey string, filePath string) (string, error) {
 			}
 		}
 
+		// lets tag the start event to begin the receive sequence
+		if i == 0 {
+			event.Tags = append(event.Tags, nostr.Tag{"t", "start"})
+		}
+
 		event.Sign(sk)
 		events[i] = event
 	}
+
+	publishEvents(events)
 
 	return events[0].ID, nil
 }
