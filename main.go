@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -15,7 +16,14 @@ var (
 
 func encryptAction() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		return encrypt(sk, pk, filePath)
+		eventID, err := send(sk, pk, filePath)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("share this event ID with the recipient: %s\n", eventID)
+
+		return nil
 	}
 }
 
