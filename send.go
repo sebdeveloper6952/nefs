@@ -10,8 +10,8 @@ import (
 )
 
 type sendResult struct {
-	chunks  int
-	eventID string
+	Chunks  int
+	EventID string
 }
 
 func send(sk string, pubkey string, filePath string) (*sendResult, error) {
@@ -75,5 +75,5 @@ func send(sk string, pubkey string, filePath string) (*sendResult, error) {
 		return nil, fmt.Errorf("send: publish chunk event: %w\n", err)
 	}
 
-	return &sendResult{eventID: event.ID}, nil
+	return &sendResult{EventID: event.ID, Chunks: len(base64Parts)}, nil
 }

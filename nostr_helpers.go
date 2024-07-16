@@ -20,7 +20,6 @@ func publishEvents(events []nostr.Event) error {
 		if err := relay.Publish(ctx, ev); err != nil {
 			return err
 		}
-		fmt.Printf("%s\n", ev)
 	}
 
 	return nil
@@ -35,6 +34,7 @@ func publishCDNList(sk string, cdns []string) error {
 
 	pk, err := nostr.GetPublicKey(sk)
 	event := nostr.Event{
+		Kind:   10063,
 		PubKey: pk,
 		Tags:   make([]nostr.Tag, len(cdns)),
 	}

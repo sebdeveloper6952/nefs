@@ -16,22 +16,26 @@ var (
 	serverUrls cli.StringSlice
 )
 
-func encryptAction() cli.ActionFunc {
+func sendCmdAction() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		eventID, err := send(sk, pk, filePath)
+		res, err := send(sk, pk, filePath)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("share this event ID with the recipient: %s\n", eventID)
+		fmt.Printf("uploaded %d chunks\nshare this event ID with the recipient: %s\n", res.Chunks, res.EventID)
 
 		return nil
 	}
 }
 
-func decryptAction() cli.ActionFunc {
+func receiveCmdAction() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		return receive(sk, pk, eventID)
+		res, err := receive(sk, pk, eventID)
+
+		fmt.Printf("received %d chunks\n", res.Chunks)
+
+		return err
 	}
 }
 
@@ -48,9 +52,9 @@ func main() {
 		Flags:       []cli.Flag{},
 		Commands: []*cli.Command{
 			{
-				Name:    "encrypt",
-				Aliases: []string{"e"},
-				Action:  encryptAction(),
+				Name:    "send",
+				Aliases: []string{"s"},
+				Action:  sendCmdAction(),
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:        "file",
@@ -74,9 +78,9 @@ func main() {
 				},
 			},
 			{
-				Name:    "decrypt",
-				Aliases: []string{"d"},
-				Action:  decryptAction(),
+				Name:    "receive",
+				Aliases: []string{"r"},
+				Action:  receiveCmdAction(),
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:        "event",
@@ -102,7 +106,6 @@ func main() {
 			{
 				Name:        "serverlist",
 				Description: "publish server list event (10063)",
-				Aliases:     []string{"s"},
 				Action:      serverListAction(),
 				Flags: []cli.Flag{
 					&cli.StringFlag{
