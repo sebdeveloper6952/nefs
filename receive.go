@@ -20,7 +20,7 @@ func receive(sk string, pk string, chunksEventID string) (*receiveResult, error)
 		return nil, fmt.Errorf("receive: compute conversation key: %w", err)
 	}
 
-	chunksEvent, err := fetchEventByID(eventID)
+	chunksEvent, err := fetchEventByID(chunksEventID)
 	if err != nil {
 		return nil, fmt.Errorf("receive: fetch summary chunksEvent: %w", err)
 	}
