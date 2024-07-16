@@ -8,10 +8,7 @@ import (
 
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/nbd-wtf/go-nostr/nip44"
-)
-
-const (
-	MaxPlaintextSize = int(0xffff)
+	blossomClient "github.com/sebdeveloper6952/blossom-server/client"
 )
 
 func readFileToBase64(filePath string) (string, error) {
@@ -25,7 +22,8 @@ func readFileToBase64(filePath string) (string, error) {
 
 func send(sk string, pubkey string, filePath string) (string, error) {
 	var (
-		pk, _ = nostr.GetPublicKey(sk)
+		pk, _       = nostr.GetPublicKey(sk)
+		client, err = blossomClient.New([]string{"http://localhost:8000"}, sk)
 	)
 
 	fileBase64, err := readFileToBase64(filePath)
@@ -33,7 +31,7 @@ func send(sk string, pubkey string, filePath string) (string, error) {
 		return "", fmt.Errorf("encrypt: %w", err)
 	}
 
-	base64Parts := splitString(fileBase64, MaxPlaintextSize)
+	base64Parts := splitString(fileBase64, nip44.MaxPlaintextSize)
 
 	convKey, err := nip44.GenerateConversationKey(pubkey, sk)
 	if err != nil {
@@ -45,30 +43,30 @@ func send(sk string, pubkey string, filePath string) (string, error) {
 		return "", fmt.Errorf("encrypt: make salt: %w", err)
 	}
 
-	events := make([]nostr.Event, len(base64Parts))
+	var (
+		event = nostr.Event{
+			Kind:      70000,
+			PubKey:    pk,
+			CreatedAt: nostr.Now(),
+			Tags:      make([]nostr.Tag, len(base64Parts)),
+		}
+	)
+
 	for i := len(base64Parts) - 1; i >= 0; i-- {
 		base64Encrypted, err := nip44.Encrypt(base64Parts[i], convKey, nip44.WithCustomSalt(salt))
 		if err != nil {
 			return "", fmt.Errorf("encrypt: Encrypt: %w", err)
 		}
 
-		event := nostr.Event{
-			Kind:      69999,
-			PubKey:    pk,
-			Content:   base64Encrypted,
-			CreatedAt: nostr.Now(),
+		blob, err := client.Upload([]byte(base64Encrypted))
+		if err != nil {
+			return "", fmt.Errorf("encrypt: upload: %w", err)
 		}
-
-		if i < len(base64Parts)-1 {
-			nextEventID := events[i+1].ID
-			event.Tags = nostr.Tags{
-				nostr.Tag{"e", nextEventID},
-			}
-		}
-
-		event.Sign(sk)
-		events[i] = event
+		event.Tags[i] = nostr.Tag{"chunk", blob.Sha256, fmt.Sprintf("%d", i)}
 	}
 
-	return events[0].ID, nil
+	event.Sign(sk)
+	publishEvents([]nostr.Event{event})
+
+	return event.ID, nil
 }

@@ -9,9 +9,11 @@ import (
 )
 
 var (
-	filePath string
-	sk       string
-	pk       string
+	sk         string
+	pk         string
+	filePath   string
+	eventID    string
+	serverUrls cli.StringSlice
 )
 
 func encryptAction() cli.ActionFunc {
@@ -29,7 +31,13 @@ func encryptAction() cli.ActionFunc {
 
 func decryptAction() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		return decrypt(sk, pk, filePath)
+		return receive(sk, pk, eventID)
+	}
+}
+
+func serverListAction() cli.ActionFunc {
+	return func(ctx *cli.Context) error {
+		return publishCDNList(sk, serverUrls.Value())
 	}
 }
 
@@ -71,11 +79,11 @@ func main() {
 				Action:  decryptAction(),
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:        "file",
-						Aliases:     []string{"f"},
-						Usage:       "file to encrypt",
+						Name:        "event",
+						Aliases:     []string{"e"},
+						Usage:       "event ID of start",
 						Required:    true,
-						Destination: &filePath,
+						Destination: &eventID,
 					},
 					&cli.StringFlag{
 						Name:        "sk",
@@ -88,6 +96,27 @@ func main() {
 						Usage:       "public key to encrypt/decrypt",
 						Required:    true,
 						Destination: &pk,
+					},
+				},
+			},
+			{
+				Name:        "serverlist",
+				Description: "publish server list event (10063)",
+				Aliases:     []string{"s"},
+				Action:      serverListAction(),
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "sk",
+						Usage:       "private key to encrypt/decrypt",
+						Required:    true,
+						Destination: &sk,
+					},
+					&cli.StringSliceFlag{
+						Name:        "servers",
+						Aliases:     []string{"s"},
+						Usage:       "server urls",
+						Required:    true,
+						Destination: &serverUrls,
 					},
 				},
 			},
