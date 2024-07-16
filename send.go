@@ -11,10 +11,6 @@ import (
 	blossomClient "github.com/sebdeveloper6952/blossom-server/client"
 )
 
-const (
-	MaxPlaintextSize = int(0xffff)
-)
-
 func readFileToBase64(filePath string) (string, error) {
 	fileBytes, err := os.ReadFile(filePath)
 	if err != nil {
@@ -35,7 +31,7 @@ func send(sk string, pubkey string, filePath string) (string, error) {
 		return "", fmt.Errorf("encrypt: %w", err)
 	}
 
-	base64Parts := splitString(fileBase64, MaxPlaintextSize)
+	base64Parts := splitString(fileBase64, nip44.MaxPlaintextSize)
 
 	convKey, err := nip44.GenerateConversationKey(pubkey, sk)
 	if err != nil {

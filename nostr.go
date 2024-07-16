@@ -26,25 +26,36 @@ func publishEvents(events []nostr.Event) error {
 	return nil
 }
 
-func fetchEvent(id string, isStart bool) (*nostr.Event, error) {
+func publishCDNList(sk string, cdns []string) error {
+	ctx := context.Background()
+	relay, err := nostr.RelayConnect(ctx, "ws://localhost:4869")
+	if err != nil {
+		return err
+	}
+
+	pk, err := nostr.GetPublicKey(sk)
+	event := nostr.Event{
+		PubKey: pk,
+		Tags:   make([]nostr.Tag, len(cdns)),
+	}
+	for i := range cdns {
+		event.Tags[i] = nostr.Tag{"server", cdns[i]}
+	}
+	event.Sign(sk)
+
+	return relay.Publish(ctx, event)
+}
+
+func fetchEvent(filters nostr.Filters) (*nostr.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	filter := nostr.Filter{
-		IDs: []string{id},
-	}
-	if isStart {
-		filter.Tags = nostr.TagMap{
-			"t": []string{"start"},
-		}
-	}
 
 	relay, err := nostr.RelayConnect(ctx, "ws://localhost:4869")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	sub, err := relay.Subscribe(ctx, nostr.Filters{filter})
+	sub, err := relay.Subscribe(ctx, filters)
 	if err != nil {
 		return nil, fmt.Errorf("fetchEventByID: %w\n", err)
 	}
@@ -57,11 +68,32 @@ func fetchEvent(id string, isStart bool) (*nostr.Event, error) {
 	}
 }
 
-func extractNextEventID(event *nostr.Event) (string, bool) {
-	tag := event.Tags.GetFirst([]string{"e"})
-	if tag == nil || len(*tag) < 2 {
-		return "", false
+func fetchEventByID(id string) (*nostr.Event, error) {
+	return fetchEvent(nostr.Filters{
+		nostr.Filter{
+			IDs: []string{id},
+		},
+	})
+}
+
+func fetchPubkeyCDNList(pk string) ([]string, error) {
+	filter := nostr.Filter{
+		Authors: []string{pk},
+		Kinds:   []int{10063},
 	}
 
-	return (*tag)[1], true
+	event, err := fetchEvent(nostr.Filters{filter})
+	if err != nil {
+		return nil, err
+	}
+
+	serverTags := event.Tags.GetAll([]string{"server"})
+	serverUrls := make([]string, len(serverTags))
+	for i := range serverTags {
+		if len(serverTags[i]) == 2 {
+			serverUrls[i] = serverTags[i][1]
+		}
+	}
+
+	return serverUrls, nil
 }

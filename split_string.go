@@ -2,18 +2,18 @@ package main
 
 import "math"
 
-func splitString(s string, maxPlaintextSize int) []string {
-	need := int(math.Ceil(float64(len(s)) / float64(maxPlaintextSize)))
+func splitString(s string, chunkLength int) []string {
+	need := int(math.Ceil(float64(len(s)) / float64(chunkLength)))
 	parts := make([]string, need)
 
 	for i := 0; i < need; i++ {
-		start := i * maxPlaintextSize
-		end := start + maxPlaintextSize
+		start := i * chunkLength
+		end := start + chunkLength
 		if len(s) < end {
 			end = len(s)
 		}
 
-		parts[i] = s[i*maxPlaintextSize : end]
+		parts[i] = s[i*chunkLength : end]
 	}
 
 	return parts
