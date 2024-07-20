@@ -21,8 +21,11 @@ func send(sk string, pubkey string, filePath string) (*sendResult, error) {
 	}
 
 	cdnList, err := fetchPubkeyCDNList(pk)
-	if err != nil || len(cdnList) == 0 {
+	if err != nil {
 		return nil, fmt.Errorf("send: fetch cdn list: %w", err)
+	}
+	if len(cdnList) == 0 {
+		return nil, fmt.Errorf("send: no cdn event found (10063) for pubkey: %s", pk)
 	}
 
 	fileBase64, err := readFileToBase64(filePath)
@@ -47,13 +50,11 @@ func send(sk string, pubkey string, filePath string) (*sendResult, error) {
 		CreatedAt: nostr.Now(),
 		Tags:      make([]nostr.Tag, len(base64Parts)),
 	}
-	blossomClient, err := blossomClient.New(cdnList, sk)
+	blossomClient, err := blossomClient.New(cdnList[0], sk)
 	if err != nil {
 		return nil, fmt.Errorf("send: init blossom client: %w\n", err)
 	}
 
-	// for each file chunk, encrypt and upload chunk to specified blossom server
-	// TODO: support multiple servers
 	for i := len(base64Parts) - 1; i >= 0; i-- {
 		base64Encrypted, err := nip44.Encrypt(base64Parts[i], convKey, nip44.WithCustomSalt(salt))
 		if err != nil {

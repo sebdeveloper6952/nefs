@@ -30,7 +30,7 @@ func receive(sk string, pk string, chunksEventID string) (*receiveResult, error)
 		return nil, fmt.Errorf("receive: fetch cdn list: %w", err)
 	}
 
-	blossomClient, _ := blossomClient.New(cdnList, sk)
+	blossomClient, _ := blossomClient.New(cdnList[0], sk)
 	chunkTags := chunksEvent.Tags.GetAll([]string{"chunk"})
 	decryptedBase64 := make([]string, len(chunkTags))
 	chunkNumber := 0
@@ -40,6 +40,7 @@ func receive(sk string, pk string, chunksEventID string) (*receiveResult, error)
 			return nil, fmt.Errorf("receive: malformed chunk tag\n")
 		}
 
+		// TODO: use additional cdns
 		blobBytes, err := blossomClient.Get(chunk[1])
 		if err != nil {
 			fmt.Println(err)
