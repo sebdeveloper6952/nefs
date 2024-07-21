@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/urfave/cli/v2"
 )
 
@@ -12,13 +13,21 @@ var (
 	sk         string
 	pk         string
 	filePath   string
+	outputFile string
+	relayUrl   string
+	serverUrl  string
 	eventID    string
-	serverUrls cli.StringSlice
 )
 
 func sendCmdAction() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		res, err := send(sk, pk, filePath)
+		res, err := send(
+			sk,
+			pk,
+			filePath,
+			relayUrl,
+			serverUrl,
+		)
 		if err != nil {
 			return err
 		}
@@ -31,17 +40,29 @@ func sendCmdAction() cli.ActionFunc {
 
 func receiveCmdAction() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		res, err := receive(sk, pk, eventID)
+		res, err := receive(sk, eventID)
+		if err != nil {
+			return err
+		}
+
+		mimeType := mimetype.Detect(res.FileBytes)
+		fileName := outputFile
+		if mimeType.Extension() != "" {
+			fileName += mimeType.Extension()
+		}
+		file, err := os.Create(fileName)
+		if err != nil {
+			return err
+		}
+
+		_, err = file.Write(res.FileBytes)
+		if err != nil {
+			return err
+		}
 
 		fmt.Printf("received %d chunks\n", res.Chunks)
 
 		return err
-	}
-}
-
-func serverListAction() cli.ActionFunc {
-	return func(ctx *cli.Context) error {
-		return publishCDNList(sk, serverUrls.Value())
 	}
 }
 
@@ -64,16 +85,32 @@ func main() {
 						Destination: &filePath,
 					},
 					&cli.StringFlag{
-						Name:        "sk",
-						Usage:       "private key to encrypt/decrypt",
+						Name:        "privkey",
+						Aliases:     []string{"sk"},
+						Usage:       "private key used to sign event",
 						Required:    true,
 						Destination: &sk,
 					},
 					&cli.StringFlag{
-						Name:        "pk",
-						Usage:       "public key to encrypt/decrypt",
+						Name:        "pubkey",
+						Aliases:     []string{"pk"},
+						Usage:       "recipient of file",
 						Required:    true,
 						Destination: &pk,
+					},
+					&cli.StringFlag{
+						Name:        "relay",
+						Aliases:     []string{"r"},
+						Usage:       "relay where file chunks event will be published",
+						Required:    true,
+						Destination: &relayUrl,
+					},
+					&cli.StringFlag{
+						Name:        "server",
+						Aliases:     []string{"s"},
+						Usage:       "URL of blossom server where file chunks will be uploaded",
+						Required:    true,
+						Destination: &serverUrl,
 					},
 				},
 			},
@@ -90,36 +127,25 @@ func main() {
 						Destination: &eventID,
 					},
 					&cli.StringFlag{
-						Name:        "sk",
-						Usage:       "private key to encrypt/decrypt",
+						Name:        "privkey",
+						Aliases:     []string{"sk"},
+						Usage:       "private key to decrypt file chunks",
 						Required:    true,
 						Destination: &sk,
 					},
 					&cli.StringFlag{
-						Name:        "pk",
-						Usage:       "public key to encrypt/decrypt",
+						Name:        "relay",
+						Aliases:     []string{"r"},
+						Usage:       "relay where event was published",
 						Required:    true,
-						Destination: &pk,
+						Destination: &relayUrl,
 					},
-				},
-			},
-			{
-				Name:        "serverlist",
-				Description: "publish server list event (10063)",
-				Action:      serverListAction(),
-				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:        "sk",
-						Usage:       "private key to encrypt/decrypt",
+						Name:        "output",
+						Aliases:     []string{"o"},
+						Usage:       "name of output file",
 						Required:    true,
-						Destination: &sk,
-					},
-					&cli.StringSliceFlag{
-						Name:        "servers",
-						Aliases:     []string{"s"},
-						Usage:       "server urls",
-						Required:    true,
-						Destination: &serverUrls,
+						Destination: &outputFile,
 					},
 				},
 			},
@@ -130,4 +156,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-

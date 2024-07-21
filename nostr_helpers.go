@@ -9,16 +9,19 @@ import (
 	"github.com/nbd-wtf/go-nostr"
 )
 
-func publishEvents(events []nostr.Event) error {
+func publishEvents(events []nostr.Event, relays []string) error {
 	ctx := context.Background()
-	relay, err := nostr.RelayConnect(ctx, "ws://localhost:4869")
-	if err != nil {
-		return err
-	}
 
-	for _, ev := range events {
-		if err := relay.Publish(ctx, ev); err != nil {
+	for _, url := range relays {
+		relay, err := nostr.RelayConnect(ctx, url)
+		if err != nil {
 			return err
+		}
+
+		for _, ev := range events {
+			if err := relay.Publish(ctx, ev); err != nil {
+				return err
+			}
 		}
 	}
 

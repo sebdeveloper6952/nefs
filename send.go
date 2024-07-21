@@ -14,18 +14,16 @@ type sendResult struct {
 	EventID string
 }
 
-func send(sk string, pubkey string, filePath string) (*sendResult, error) {
+func send(
+	sk string,
+	pubkey string,
+	filePath string,
+	relayUrl string,
+	serverUrl string,
+) (*sendResult, error) {
 	pk, err := nostr.GetPublicKey(sk)
 	if err != nil {
 		return nil, fmt.Errorf("send: invalid private key: %w\n", err)
-	}
-
-	cdnList, err := fetchPubkeyCDNList(pk)
-	if err != nil {
-		return nil, fmt.Errorf("send: fetch cdn list: %w", err)
-	}
-	if len(cdnList) == 0 {
-		return nil, fmt.Errorf("send: no cdn event found (10063) for pubkey: %s", pk)
 	}
 
 	fileBase64, err := readFileToBase64(filePath)
@@ -48,9 +46,11 @@ func send(sk string, pubkey string, filePath string) (*sendResult, error) {
 		Kind:      70000,
 		PubKey:    pk,
 		CreatedAt: nostr.Now(),
-		Tags:      make([]nostr.Tag, len(base64Parts)),
+		Tags: nostr.Tags{
+			nostr.Tag{"server", serverUrl},
+		},
 	}
-	blossomClient, err := blossomClient.New(cdnList[0], sk)
+	blossomClient, err := blossomClient.New(serverUrl, sk)
 	if err != nil {
 		return nil, fmt.Errorf("send: init blossom client: %w\n", err)
 	}
@@ -65,14 +65,14 @@ func send(sk string, pubkey string, filePath string) (*sendResult, error) {
 		if err != nil {
 			return nil, fmt.Errorf("send: upload: %w", err)
 		}
-		event.Tags[i] = nostr.Tag{"chunk", blob.Sha256, fmt.Sprintf("%d", i)}
+		event.Tags = append(event.Tags, nostr.Tag{"chunk", blob.Sha256, fmt.Sprintf("%d", i)})
 	}
 
 	if err := event.Sign(sk); err != nil {
 		return nil, fmt.Errorf("send: sign chunks event: %w\n", err)
 	}
 
-	if err := publishEvents([]nostr.Event{event}); err != nil {
+	if err := publishEvents([]nostr.Event{event}, []string{relayUrl}); err != nil {
 		return nil, fmt.Errorf("send: publish chunk event: %w\n", err)
 	}
 
