@@ -1,4 +1,4 @@
-package main
+package nefs
 
 import (
 	"encoding/base64"
@@ -10,13 +10,13 @@ import (
 	blossomClient "github.com/sebdeveloper6952/blossom-server/client"
 )
 
-type receiveResult struct {
+type ReceiveResult struct {
 	Chunks    int
 	FileBytes []byte
 }
 
-func receive(sk string, chunksEventID string) (*receiveResult, error) {
-	chunksEvent, err := fetchEventByID(chunksEventID)
+func Receive(sk string, chunksEventID string) (*ReceiveResult, error) {
+	chunksEvent, err := FetchEventByID(chunksEventID)
 	if err != nil {
 		return nil, fmt.Errorf("receive: fetch summary chunksEvent: %w", err)
 	}
@@ -60,7 +60,7 @@ func receive(sk string, chunksEventID string) (*receiveResult, error) {
 		return nil, fmt.Errorf("decrypt: decode file base64: %w", err)
 	}
 
-	return &receiveResult{
+	return &ReceiveResult{
 		FileBytes: fileBytes,
 		Chunks:    chunkNumber,
 	}, err

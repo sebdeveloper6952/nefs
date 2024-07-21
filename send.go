@@ -1,4 +1,4 @@
-package main
+package nefs
 
 import (
 	"crypto/rand"
@@ -9,28 +9,28 @@ import (
 	blossomClient "github.com/sebdeveloper6952/blossom-server/client"
 )
 
-type sendResult struct {
+type SendResult struct {
 	Chunks  int
 	EventID string
 }
 
-func send(
+func Send(
 	sk string,
 	pubkey string,
 	filePath string,
 	relayUrl string,
 	serverUrl string,
-) (*sendResult, error) {
+) (*SendResult, error) {
 	pk, err := nostr.GetPublicKey(sk)
 	if err != nil {
 		return nil, fmt.Errorf("send: invalid private key: %w\n", err)
 	}
 
-	fileBase64, err := readFileToBase64(filePath)
+	fileBase64, err := ReadFileToBase64(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("send: %w", err)
 	}
-	base64Parts := splitString(fileBase64, nip44.MaxPlaintextSize)
+	base64Parts := SplitString(fileBase64, nip44.MaxPlaintextSize)
 
 	convKey, err := nip44.GenerateConversationKey(pubkey, sk)
 	if err != nil {
@@ -72,9 +72,9 @@ func send(
 		return nil, fmt.Errorf("send: sign chunks event: %w\n", err)
 	}
 
-	if err := publishEvents([]nostr.Event{event}, []string{relayUrl}); err != nil {
+	if err := PublishEvents([]nostr.Event{event}, []string{relayUrl}); err != nil {
 		return nil, fmt.Errorf("send: publish chunk event: %w\n", err)
 	}
 
-	return &sendResult{EventID: event.ID, Chunks: len(base64Parts)}, nil
+	return &SendResult{EventID: event.ID, Chunks: len(base64Parts)}, nil
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/sebdeveloper6952/nefs"
 	"github.com/urfave/cli/v2"
 )
 
@@ -21,7 +22,7 @@ var (
 
 func sendCmdAction() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		res, err := send(
+		res, err := nefs.Send(
 			sk,
 			pk,
 			filePath,
@@ -40,7 +41,7 @@ func sendCmdAction() cli.ActionFunc {
 
 func receiveCmdAction() cli.ActionFunc {
 	return func(ctx *cli.Context) error {
-		res, err := receive(sk, eventID)
+		res, err := nefs.Receive(sk, eventID)
 		if err != nil {
 			return err
 		}
@@ -68,9 +69,9 @@ func receiveCmdAction() cli.ActionFunc {
 
 func main() {
 	app := &cli.App{
-		Name:        "nefs",
-		Description: "send/receive encrypted files over nostr",
-		Flags:       []cli.Flag{},
+		Name:  "nefs",
+		Usage: "send/receive encrypted files over nostr",
+		Flags: []cli.Flag{},
 		Commands: []*cli.Command{
 			{
 				Name:    "send",

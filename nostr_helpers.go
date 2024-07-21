@@ -1,4 +1,4 @@
-package main
+package nefs
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/nbd-wtf/go-nostr"
 )
 
-func publishEvents(events []nostr.Event, relays []string) error {
+func PublishEvents(events []nostr.Event, relays []string) error {
 	ctx := context.Background()
 
 	for _, url := range relays {
@@ -28,7 +28,7 @@ func publishEvents(events []nostr.Event, relays []string) error {
 	return nil
 }
 
-func publishCDNList(sk string, cdns []string) error {
+func PublishCDNList(sk string, cdns []string) error {
 	ctx := context.Background()
 	relay, err := nostr.RelayConnect(ctx, "ws://localhost:4869")
 	if err != nil {
@@ -49,7 +49,7 @@ func publishCDNList(sk string, cdns []string) error {
 	return relay.Publish(ctx, event)
 }
 
-func fetchEvent(filters nostr.Filters) (*nostr.Event, error) {
+func FetchEvent(filters nostr.Filters) (*nostr.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -71,21 +71,21 @@ func fetchEvent(filters nostr.Filters) (*nostr.Event, error) {
 	}
 }
 
-func fetchEventByID(id string) (*nostr.Event, error) {
-	return fetchEvent(nostr.Filters{
+func FetchEventByID(id string) (*nostr.Event, error) {
+	return FetchEvent(nostr.Filters{
 		nostr.Filter{
 			IDs: []string{id},
 		},
 	})
 }
 
-func fetchPubkeyCDNList(pk string) ([]string, error) {
+func FetchPubkeyCDNList(pk string) ([]string, error) {
 	filter := nostr.Filter{
 		Authors: []string{pk},
 		Kinds:   []int{10063},
 	}
 
-	event, err := fetchEvent(nostr.Filters{filter})
+	event, err := FetchEvent(nostr.Filters{filter})
 	if err != nil {
 		return nil, err
 	}

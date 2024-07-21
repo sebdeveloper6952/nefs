@@ -1,8 +1,8 @@
-package main
+package nefs
 
 import "math"
 
-func splitString(s string, chunkLength int) []string {
+func SplitString(s string, chunkLength int) []string {
 	need := int(math.Ceil(float64(len(s)) / float64(chunkLength)))
 	parts := make([]string, need)
 
